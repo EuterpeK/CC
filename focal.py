@@ -38,7 +38,7 @@ def get_params():
     parser.add_argument('--image_path', type=str, default='dust3r/croco/assets/Chateau1.png')
     parser.add_argument('--encoder', type=str, default='vitl')
     parser.add_argument('--focal_mode', type=str, default='weiszfeld')
-    parser.add_argument('--dataset', type=str, default='KITTI', choices=['KITTI', 'NYUv2', 'CO3D'])
+    parser.add_argument('--dataset', type=str, default='KITTI', choices=['KITTI', 'NYUv2', 'CO3D', 'SUN3D', 'Waymo'])
     parser.add_argument('--test_depthanything', type=bool, default=True)
     parser.add_argument('--width', type=int, default=224)
     parser.add_argument('--height', type=int, default=224)
@@ -72,7 +72,8 @@ def get_focals():
     gt_focals = np.array(gt_focals)
     
     if args.dataset == 'CO3D':
-        gt_focals = gt_focals * args.image_size 
+        gt_focals[:,0] = gt_focals[:,0] * args.width
+        gt_focals[:,1] = gt_focals[:,1] * args.height 
         
     dp_dataset = DPDataset(image_paths, args)     
     
@@ -86,7 +87,7 @@ def get_focals():
     depthanything_focals = []
     ip_loader = DataLoader(image_paths, batch_size=args.batch_size, shuffle=False, num_workers=8)
     dp_img_loader = DataLoader(dp_dataset, batch_size=args.batch_size, shuffle=False, num_workers=8)
-    for img_path, dp_img in tqdm(zip(ip_loader, dp_img_loader), total=len(ip_loader), colour='#0396ff', desc='{}'.format(args.dataset)):
+    for img_path, dp_img in tqdm(zip(ip_loader, dp_img_loader), total=len(ip_loader), colour='#0396ff', desc='{}-{}'.format(args.dataset,args.focal_mode)):
         dust3r_paths = []
         for ip in img_path:
             dust3r_paths.extend([ip, ip])
@@ -101,15 +102,15 @@ def get_focals():
         
         if args.test_depthanything:
             # depthanything 3D point 构造
-            pred1_max = torch.amax(pred1[:,:,:,2], dim=(1, 2), keepdim=True).repeat(1, args.width, args.height)
-            pred1_min = torch.amin(pred1[:,:,:,2], dim=(1, 2), keepdim=True).repeat(1, args.width, args.height)
+            pred1_max = torch.amax(pred1[:,:,:,2], dim=(1, 2), keepdim=True).repeat(1, args.height, args.width)
+            pred1_min = torch.amin(pred1[:,:,:,2], dim=(1, 2), keepdim=True).repeat(1, args.height, args.width)
             inter = pred1_max - pred1_min
             
             dp_img = dp_img.to(args.device)
             with torch.no_grad():
                 depths = depthanything(dp_img)
             
-            depths_max = torch.amax(depths, dim=(1,2), keepdim=True).repeat(1, args.width, args.height)
+            depths_max = torch.amax(depths, dim=(1,2), keepdim=True).repeat(1, args.height, args.width)
             depths = depths / depths_max 
             pred1[:,:,:,2] = depths * inter + pred1_min
             depthanything_3d = pred1
