@@ -38,7 +38,7 @@ def get_params():
     parser.add_argument('--image_path', type=str, default='dust3r/croco/assets/Chateau1.png')
     parser.add_argument('--encoder', type=str, default='vitl')
     parser.add_argument('--focal_mode', type=str, default='weiszfeld')
-    parser.add_argument('--dataset', type=str, default='KITTI', choices=['KITTI', 'NYUv2', 'CO3D', 'SUN3D', 'Waymo'])
+    parser.add_argument('--dataset', type=str, default='KITTI', choices=['KITTI', 'NYUv2', 'CO3D', 'SUN3D', 'Waymo', 'ScanNet', 'ARKit'])
     parser.add_argument('--test_depthanything', type=bool, default=True)
     parser.add_argument('--width', type=int, default=224)
     parser.add_argument('--height', type=int, default=224)
@@ -102,17 +102,27 @@ def get_focals():
         
         if args.test_depthanything:
             # depthanything 3D point 构造
-            pred1_max = torch.amax(pred1[:,:,:,2], dim=(1, 2), keepdim=True).repeat(1, args.height, args.width)
-            pred1_min = torch.amin(pred1[:,:,:,2], dim=(1, 2), keepdim=True).repeat(1, args.height, args.width)
-            inter = pred1_max - pred1_min
+            # pred1_max = torch.amax(pred1[:,:,:,2], dim=(1, 2), keepdim=True).repeat(1, args.height, args.width)
+            # pred1_min = torch.amin(pred1[:,:,:,2], dim=(1, 2), keepdim=True).repeat(1, args.height, args.width)
+            # inter = pred1_max - pred1_min
             
             dp_img = dp_img.to(args.device)
             with torch.no_grad():
-                depths = depthanything(dp_img)
+                depths = depthanything(dp_img) / 100 + 0.18582
             
-            depths_max = torch.amax(depths, dim=(1,2), keepdim=True).repeat(1, args.height, args.width)
-            depths = depths / depths_max 
-            pred1[:,:,:,2] = depths * inter + pred1_min
+            # depths_min = torch.amin(depths, dim=(1,2), keepdim=True).repeat(1, args.height, args.width)
+            # depths_max = torch.amax(depths, dim=(1,2), keepdim=True).repeat(1, args.height, args.width)
+            # print(pred1[0,:,:,2])
+            # print(pred1_min[0])
+            # print(pred1_max[0])
+            # print(depths_min[0])
+            # print(depths_max[0])
+            # exit()
+            
+            # depths_max = torch.amax(depths, dim=(1,2), keepdim=True).repeat(1, args.height, args.width)
+            # depths = depths / depths_max 
+            # pred1[:,:,:,2] = depths * inter + pred1_min
+            pred1[:,:,:,2] = depths
             depthanything_3d = pred1
             depthanything_focal = estimate_focal_knowing_depth(depthanything_3d, pp, focal_mode=args.focal_mode)
             depthanything_focals.append(depthanything_focal)

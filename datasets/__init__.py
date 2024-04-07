@@ -5,6 +5,7 @@ from .sun3d import SUN3D
 from .waymo import Waymo
 from .ScanNet import ScanNet
 from .arkit import ARKit
+from .nuscenes import NUScenes
 from .depthanything import DPDataset
 from .dust3r import load_dust3r_images
 
@@ -26,6 +27,9 @@ def get_dataset(dataset_name):
         return ScanNet()
     elif dataset_name == 'ARKit':
         return ARKit()
+    elif dataset_name == 'NUScenes':
+        return NUScenes()
+    
     else:
         raise ValueError('dataset_name should be NYU2v, CO3D or Kitti')
     
