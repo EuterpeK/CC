@@ -10,9 +10,9 @@ from dust3r.inference import inference, load_model
 from dust3r.image_pairs import make_pairs
 # from dust3r.post_process import estimate_focal_knowing_depth
 
-sys.path.append("../depthanything/")
-from depth_anything.dpt import DepthAnything
-import cv2
+# sys.path.append("../depthanything/")
+# from depth_anything.dpt import DepthAnything
+# import cv2
 from torchvision.transforms import Compose
 from tqdm.auto import tqdm
 import numpy as np
