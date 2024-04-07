@@ -42,6 +42,7 @@ def get_params():
     parser.add_argument('--test_depthanything', type=bool, default=True)
     parser.add_argument('--width', type=int, default=224)
     parser.add_argument('--height', type=int, default=224)
+    parser.add_argument('--data_dir', type=str, defalut=None)
     return parser.parse_args()
 
 
@@ -67,8 +68,9 @@ def get_focals():
     args = get_params()
     
     # 获取数据    
-    image_paths = get_dataset(args.dataset).load_image_paths()
-    gt_focals = get_dataset(args.dataset).load_image_focals()
+    dataset = get_dataset(args.dataset, args.data_dir)
+    image_paths = dataset.load_image_paths()
+    gt_focals = dataset.load_image_focals()
     gt_focals = np.array(gt_focals)
     
     if args.dataset == 'CO3D':
