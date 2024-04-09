@@ -57,3 +57,22 @@ def gt_intrinsics_scale(gt_intrinsics, args):
         r_gt_intrinsics.append(scale @ intr)
 
     return r_gt_intrinsics
+
+
+class AverageMeter:
+    def __init__(self):
+        self.reset()
+
+    def reset(self):
+        self.sum = 0.
+        self.count = 0.
+        self.average = 0.
+
+    def update(self, avg, n=1):
+        self.sum += avg * n
+        self.count += n
+        self.average = self.sum / self.count
+        
+    def get_average(self):
+        return self.average
+        

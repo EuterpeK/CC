@@ -3,7 +3,7 @@ from torch.utils.data import DataLoader
 from collections import namedtuple
 import sys
 from datasets import get_dataset, load_images
-from utils import instrinsics2focals, instrinsics2principal, eval_focal_or_principal, get_models, gt_intrinsics_scale
+from utils import instrinsics2focals, instrinsics2principal, eval_focal_or_principal, get_models, gt_intrinsics_scale, AverageMeter
 sys.path.append("../dust3r/")
 from dust3r.inference import inference
 from dust3r.image_pairs import make_pairs
@@ -29,7 +29,7 @@ def get_params():
     parser = argparse.ArgumentParser()
     parser.add_argument('--dust3r_model_path', type=str, default='../0-Pretrained/Dust3r/DUSt3R_ViTLarge_BaseDecoder_512_dpt.pth')
     parser.add_argument('--device', type=str, default='cuda')
-    parser.add_argument('--batch_size', type=int, default=1)
+    parser.add_argument('--batch_size', type=int, default=100)
     parser.add_argument('--image_size', type=int, default=512)
     parser.add_argument('--encoder', type=str, default='vitl')
     parser.add_argument('--focal_mode', type=str, default='weiszfeld')
@@ -49,17 +49,18 @@ def infer_intrinsics_and_depths(model, imgs, args):
     instrinsics = []
     depths = []
     outputs = []
-    if os.path.exists('./pred_pts3d/{}-{}-{}.pt'.format(args.dataset, args.width, args.height)):
-        outputs = torch.load('./pred_pts3d/{}-{}-{}.pt'.format(args.dataset, args.width, args.height))
-        print('{}-{}-{}.pt already exists!'.format(args.dataset, args.width, args.height))
-    else:
-        for img in tqdm(imgs, colour='#0396ff', desc='inference {}-{}'.format(args.dataset,args.focal_mode)):
-            images = load_images([img, img], args)
-            pairs = make_pairs(images, scene_graph='complete', prefilter=None, symmetrize=True)
-            output = inference(pairs, model, args.device, batch_size=args.batch_size)
-            outputs.append(output)
-        torch.save(outputs, './pred_pts3d/{}-{}-{}.pt'.format(args.dataset, args.width, args.height))
-    for output in tqdm(outputs, colour='#0396ff', desc='post_process'):
+    # if os.path.exists('./pred_pts3d/{}-{}-{}.pt'.format(args.dataset, args.width, args.height)):
+    #     outputs = torch.load('./pred_pts3d/{}-{}-{}.pt'.format(args.dataset, args.width, args.height))
+    #     print('{}-{}-{}.pt already exists!'.format(args.dataset, args.width, args.height))
+    # else:
+    for img in tqdm(imgs, colour='#0396ff', desc='inference batch {}-{}'.format(args.dataset,args.focal_mode), leave=False):
+        images = load_images([img, img], args)
+        pairs = make_pairs(images, scene_graph='complete', prefilter=None, symmetrize=True)
+        with torch.no_grad():
+            output = inference(pairs, model, args.device, batch_size=1)
+        outputs.append(output)
+        # torch.save(outputs, './pred_pts3d/{}-{}-{}.pt'.format(args.dataset, args.width, args.height))
+    for output in tqdm(outputs, colour='#0396ff', desc='post_process', leave=False):
         if args.scene_mode == 'Pair':
             scene = global_aligner(output, device=args.device, mode=GlobalAlignerMode.PairViewer)
         elif args.scene_mode == 'PointCloud':
@@ -67,8 +68,8 @@ def infer_intrinsics_and_depths(model, imgs, args):
             _ = scene.compute_global_alignment(init="mst", niter=300, schedule='cosine', lr=0.01)
         else:
             raise ValueError('scene_mode should be Pair or PointCloud')
-        instrinsics.append(scene.get_intrinsics().detach().cpu().numpy()[0])
-        depths.append(scene.get_depthmaps()[0].detach().cpu().numpy())
+        instrinsics.append(scene.get_intrinsics().cpu().numpy()[0])
+        depths.append(scene.get_depthmaps()[0].cpu().numpy())
     return instrinsics, depths
 
 def reconstruct_3d_points(intrinsics, depths, args):
@@ -98,25 +99,33 @@ def pipe():
     gt_intrinsics = dataset.load_intrinsics()
     gt_intrinsics = gt_intrinsics_scale(gt_intrinsics, args)
     
-    gt_focals = instrinsics2focals(gt_intrinsics)
-    gt_principal = instrinsics2principal(gt_intrinsics)
-    
-    # 通过dust3r估计相机内参
     dust3r = get_models('dust3r', args)
-    pred_intrinsics, depths = infer_intrinsics_and_depths(dust3r, image_paths, args)
     
-    # 通过内参重建3D点云
-    # recon_pts3d = reconstruct_3d_points(pred_intrinsics, depths, args)
+    test_loader = DataLoader(list(zip(image_paths, gt_intrinsics)), batch_size=args.batch_size, shuffle=False, num_workers=8)
     
-    
-    # 计算内参误差
-    focal_error = eval_focal_or_principal(instrinsics2focals(pred_intrinsics), gt_focals)
-    principal_error = eval_focal_or_principal(instrinsics2principal(pred_intrinsics), gt_principal)
+    focal_avg = AverageMeter()
+    principal_avg = AverageMeter()
+    for img_paths, gt_intrinsic in tqdm(test_loader, desc='inference {}-{}'.format(args.dataset,args.focal_mode), colour='#0396ff'):
+        gt_focals = instrinsics2focals(gt_intrinsic)
+        gt_principal = instrinsics2principal(gt_intrinsic)
         
-    print('focal_error:', focal_error)
-    print('principal_error:', principal_error)
+        # 通过dust3r估计相机内参
+        pred_intrinsics, depths = infer_intrinsics_and_depths(dust3r, img_paths, args)
     
-    # 计算3D点云误差
+        # 通过内参重建3D点云
+        # recon_pts3d = reconstruct_3d_points(pred_intrinsics, depths, args)
+        
+        
+        # 计算内参误差
+        focal_avg.update(eval_focal_or_principal(instrinsics2focals(pred_intrinsics), gt_focals), len(img_paths))
+        principal_avg.update(eval_focal_or_principal(instrinsics2principal(pred_intrinsics), gt_principal), len(img_paths))
+        
+        # 计算3D点云误差
+        
+        
+    print('focal_error:', focal_avg.get_average())
+    print('principal_error:', principal_avg.get_average())
+    
     
     
     

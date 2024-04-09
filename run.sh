@@ -1,15 +1,15 @@
 width=512
 height=384
 
-
-for ds in 'SUN3D' 'NYUv2' 'Waymo' 'ARKitScenes' 'KITTI' 'ScanNet'
+# 'ARKitScenes' 
+for ds in 'ScanNet'
 do
-    for fm in "weiszfeld" "median"
+    for fm in "median"
     do
-        CUDA_VISIBLE_DEVICES=0 python pipeline.py \
+        CUDA_VISIBLE_DEVICES=1 python pipeline.py \
                         --focal_mode ${fm} \
                         --dataset ${ds} \
-                        --batch_size 1 \
+                        --batch_size 100 \
                         --width ${width} \
                         --height ${height}  
     done

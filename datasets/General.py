@@ -91,7 +91,7 @@ class CO3D:
     
     
 class KITTI:
-    def __init__(self, dataset='Kitti', data_root='../0-datasets', train=False):
+    def __init__(self, dataset='KITTI', data_root='../0-datasets', train=False):
         self.data_dir = os.path.join(data_root, dataset)
         self.train_dir = os.path.join(self.data_dir, 'training')
         self.test_dir = os.path.join(self.data_dir, 'testing')
