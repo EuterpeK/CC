@@ -1,12 +1,12 @@
-width=512
-height=384
+width=640
+height=480
 
 
-for ds in 'SUN3D' 'NYUv2' 'Waymo' 'ARKitScenes' 'KITTI' 'ScanNet'
+for ds in 'SUN3D'
 do
-    for fm in "weiszfeld" "median"
+    for fm in "median"
     do
-        CUDA_VISIBLE_DEVICES=0 python pipeline.py \
+        CUDA_VISIBLE_DEVICES=0 python distribution.py \
                         --focal_mode ${fm} \
                         --dataset ${ds} \
                         --batch_size 1 \

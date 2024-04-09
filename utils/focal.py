@@ -85,6 +85,8 @@ def estimate_focal_knowing_depth(pts3d, pp, focal_mode='median', min_focal=0.5, 
         raise ValueError(f'bad {focal_mode=}')
 
     focal_base = max(H, W) / (2 * np.tan(np.deg2rad(60) / 2))  # size / 1.1547005383792515
-    focal = focal.clip(min=min_focal*focal_base, max=max_focal*focal_base)
+    focal = focal.clip(focal, min=min_focal*focal_base, max=max_focal*focal_base)
     # print(focal)
-    return focal
+    fx_votes = fx_votes.clip(min=min_focal*focal_base, max=max_focal*focal_base)
+    fy_votes = fy_votes.clip(min=min_focal*focal_base, max=max_focal*focal_base)
+    return focal, fx_votes, fy_votes
