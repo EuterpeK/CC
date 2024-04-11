@@ -5,7 +5,7 @@ import numpy as np
 
 class GeneralDataset:
     def __init__(self, dataset, data_root='../0-datasets', train=False):
-        assert dataset in ['ARKitScenes', 'NUScenes', 'NYUv2', 'ScanNet', 'SUN3D', 'Waymo']
+        assert dataset in ['ARKitScenes', 'NUScenes', 'NYUv2', 'ScanNet', 'SUN3D', 'Waymo', 'KITTI']
         self.data_dir = os.path.join(data_root, dataset)
     
     

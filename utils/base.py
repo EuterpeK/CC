@@ -1,6 +1,7 @@
 import numpy as np
+import torch
 import sys
-sys.path.append("../dust3r/")
+sys.path.append('../dust3r/')
 from dust3r.inference import load_model
 
 def instrinsics2focals(intrinsics):
@@ -17,7 +18,6 @@ def instrinsics2principal(intrinsics):
         principals.append(principal)
     return principals
 
-
 def eval_focal_or_principal(pred_focals, gt_focals):
     pred_focals = np.array(pred_focals)
     gt_focals = np.array(gt_focals)
@@ -33,11 +33,10 @@ def get_models(model_name, args):
         raise ValueError('model_name should be dust3r or depthanything')
     
     
-    
 def gt_intrinsics_scale(gt_intrinsics, args):
     if args.dataset == 'KITTI':
-        w, h = 1224, 370
-    elif args.dataset == 'NYUv2' or args.dataset == 'SUN3D':
+        w, h = 1242, 375
+    elif args.dataset == 'NYUv2' or args.dataset == 'SUN3D' or args.dataset == 'NUScenes':
         w, h = 640, 480
     elif args.dataset == 'Waymo':
         w, h = 1920, 1280
@@ -74,5 +73,5 @@ class AverageMeter:
         self.average = self.sum / self.count
         
     def get_average(self):
-        return self.average
+        return np.around(self.average, decimals=3)
         

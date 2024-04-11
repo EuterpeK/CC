@@ -97,6 +97,7 @@ def pipe():
     image_paths = dataset.load_image_paths()
     
     gt_intrinsics = dataset.load_intrinsics()
+    # if args.dataset != 'KITTI':
     gt_intrinsics = gt_intrinsics_scale(gt_intrinsics, args)
     
     dust3r = get_models('dust3r', args)
@@ -105,7 +106,8 @@ def pipe():
     
     focal_avg = AverageMeter()
     principal_avg = AverageMeter()
-    for img_paths, gt_intrinsic in tqdm(test_loader, desc='inference {}-{}'.format(args.dataset,args.focal_mode), colour='#0396ff'):
+    test_batches = tqdm(test_loader, desc='{}-{}'.format(args.dataset,args.focal_mode), colour='#0396ff')
+    for img_paths, gt_intrinsic in test_batches:
         gt_focals = instrinsics2focals(gt_intrinsic)
         gt_principal = instrinsics2principal(gt_intrinsic)
         
@@ -122,7 +124,9 @@ def pipe():
         
         # 计算3D点云误差
         
-        
+        # 更新batch的误差
+        test_batches.set_postfix(f=max(focal_avg.get_average()), b=max(principal_avg.get_average()))
+    
     print('focal_error:', focal_avg.get_average())
     print('principal_error:', principal_avg.get_average())
     
